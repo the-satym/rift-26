@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmaGuard — Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --accent: #7ee8c8;
+            --accent-blue: #38bdf8;
+            --accent-soft: rgba(126, 232, 200, 0.13);
+            --glass: rgba(255, 255, 255, 0.065);
+            --glass-border: rgba(255, 255, 255, 0.11);
+            --glass-hover: rgba(255, 255, 255, 0.09);
+            --text: #eef2f7;
+            --text-muted: rgba(238, 242, 247, 0.5);
+            --text-dim: rgba(238, 242, 247, 0.28);
+            --red: #f87171;
+            --green: #4ade80;
+            --yellow: #fbbf24;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            min-height: 100vh;
+            font-family: 'DM Sans', sans-serif;
+            background: #080f1a;
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 15% 5%,  rgba(56,189,248,0.11) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 85% 85%, rgba(126,232,200,0.09) 0%, transparent 55%),
+                radial-gradient(ellipse 40% 40% at 55% 35%, rgba(99,102,241,0.07) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .orb { position: fixed; border-radius: 50%; filter: blur(85px); opacity: 0.28; animation: drift 14s ease-in-out infinite alternate; pointer-events: none; z-index: 0; }
+        .orb-1 { width: 520px; height: 520px; background: radial-gradient(#38bdf8,transparent); top: -160px; left: -160px; animation-duration: 17s; }
+        .orb-2 { width: 360px; height: 360px; background: radial-gradient(#7ee8c8,transparent); bottom: -100px; right: -100px; animation-duration: 12s; animation-delay: -5s; }
+        .orb-3 { width: 240px; height: 240px; background: radial-gradient(#818cf8,transparent); top: 42%; left: 58%; animation-duration: 19s; animation-delay: -9s; }
+
+        @keyframes drift { from{transform:translate(0,0) scale(1)} to{transform:translate(38px,24px) scale(1.06)} }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+        /* ── HEADER ── */
+        header {
+            position: sticky; top: 0; z-index: 100;
+            padding: 16px 0 22px;
+        }
+
+        .header-inner {
+            display: flex; align-items: center; justify-content: space-between;
+            margin: 0 4%;
+            padding: 10px 22px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(32px) saturate(1.5);
+            -webkit-backdrop-filter: blur(32px) saturate(1.5);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+
+        .header-brand {
+            display: flex; align-items: center; gap: 10px;
+            text-decoration: none;
+        }
+
+        .brand-icon {
+            width: 34px; height: 34px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-blue));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .brand-icon svg { width: 17px; height: 17px; }
+
+        .brand-name {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.2rem; font-weight: 500;
+            color: var(--text); letter-spacing: 0.02em;
+        }
+
+        .header-right { display: flex; align-items: center; gap: 12px; }
+
+        .admin-pill {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 14px; border-radius: 999px;
+            border: 1px solid rgba(251,191,36,0.25);
+            background: rgba(251,191,36,0.07);
+            font-size: 0.78rem; font-weight: 500;
+            color: var(--yellow); letter-spacing: 0.04em;
+        }
+
+        .admin-pill svg { width: 13px; height: 13px; }
+
+        .btn-logout {
+            padding: 8px 20px; border-radius: 13px;
+            font-size: 0.83rem; font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+            background: rgba(248,113,113,0.1);
+            border: 1px solid rgba(248,113,113,0.28);
+            color: var(--red); cursor: pointer;
+            transition: all 0.22s; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 7px;
+        }
+
+        .btn-logout:hover {
+            background: rgba(248,113,113,0.2);
+            border-color: rgba(248,113,113,0.5);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(248,113,113,0.15);
+        }
+
+        .btn-logout svg { width: 14px; height: 14px; }
+
+        /* ── PAGE ── */
+        .page {
+            position: relative; z-index: 1;
+            max-width: 1100px; margin: 0 auto;
+            padding: 2.5rem 2rem 5rem;
+        }
+
+        /* ── PAGE HEADER ── */
+        .page-header {
+            display: flex; align-items: flex-end; justify-content: space-between;
+            flex-wrap: wrap; gap: 1rem;
+            margin-bottom: 2rem;
+            animation: fadeUp 0.6s ease both;
+        }
+
+        .page-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(1.8rem, 4vw, 2.6rem);
+            font-weight: 300; line-height: 1.1;
+            letter-spacing: -0.015em; color: var(--text);
+        }
+
+        .page-title em { font-style: italic; color: var(--accent); }
+
+        .page-sub {
+            font-size: 0.85rem; font-weight: 300;
+            color: var(--text-muted); margin-top: 0.3rem;
+        }
+
+        /* ── STATS ROW ── */
+        .stats-row {
+            display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;
+            animation: fadeUp 0.6s 0.06s ease both;
+        }
+
+        .stat-card {
+            flex: 1; min-width: 140px;
+            padding: 1.2rem 1.4rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            backdrop-filter: blur(16px);
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .stat-card:hover { background: var(--glass-hover); transform: translateY(-2px); }
+
+        .stat-num {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2rem; font-weight: 400;
+            color: var(--accent); line-height: 1; margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.7rem; color: var(--text-dim);
+            letter-spacing: 0.08em; text-transform: uppercase; font-weight: 500;
+        }
+
+        /* ── SEARCH + FILTER BAR ── */
+        .toolbar {
+            display: flex; align-items: center; gap: 0.8rem;
+            margin-bottom: 1.2rem; flex-wrap: wrap;
+            animation: fadeUp 0.6s 0.1s ease both;
+        }
+
+        .search-wrap {
+            flex: 1; min-width: 200px;
+            position: relative;
+        }
+
+        .search-icon {
+            position: absolute; left: 13px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted); display: flex; pointer-events: none;
+        }
+
+        .search-icon svg { width: 15px; height: 15px; }
+
+        .search-input {
+            width: 100%;
+            padding: 0.72rem 1rem 0.72rem 2.5rem;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.88rem; font-weight: 300;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            backdrop-filter: blur(12px);
+        }
+
+        .search-input::placeholder { color: var(--text-muted); }
+
+        .search-input:focus {
+            border-color: rgba(126,232,200,0.45);
+            background: rgba(255,255,255,0.08);
+            box-shadow: 0 0 0 3px rgba(126,232,200,0.1);
+        }
+
+        .total-badge {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.75rem; font-weight: 500;
+            padding: 7px 14px; border-radius: 10px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass);
+            color: var(--text-muted); white-space: nowrap;
+            backdrop-filter: blur(12px);
+        }
+
+        .total-badge span { color: var(--accent); }
+
+        /* ── TABLE CARD ── */
+        .table-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            overflow: hidden;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06);
+            animation: fadeUp 0.6s 0.14s ease both;
+        }
+
+        /* Table head */
+        .table-head {
+            display: grid;
+            grid-template-columns: 2fr 1.6fr 2.2fr 1fr;
+            padding: 0.85rem 1.6rem;
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(255,255,255,0.03);
+        }
+
+        .th {
+            font-size: 0.67rem; font-weight: 500;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--text-dim);
+        }
+
+        /* Table rows */
+        .table-body { }
+
+        .doctor-row {
+            display: grid;
+            grid-template-columns: 2fr 1.6fr 2.2fr 1fr;
+            padding: 1.1rem 1.6rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            align-items: center;
+            transition: background 0.18s;
+            animation: fadeUp 0.5s ease both;
+        }
+
+        .doctor-row:last-child { border-bottom: none; }
+        .doctor-row:hover { background: rgba(255,255,255,0.04); }
+
+        /* Name cell */
+        .cell-name {
+            display: flex; align-items: center; gap: 12px;
+        }
+
+        .avatar {
+            width: 38px; height: 38px; border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent-soft), rgba(56,189,248,0.12));
+            border: 1px solid rgba(126,232,200,0.2);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1rem; font-weight: 500; color: var(--accent);
+        }
+
+        .doctor-name {
+            font-size: 0.9rem; font-weight: 500; color: var(--text);
+        }
+
+        .doctor-id {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.68rem; color: var(--text-dim); margin-top: 2px;
+        }
+
+        /* Phone cell */
+        .cell-phone {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.82rem; color: var(--text-muted);
+        }
+
+        /* Email cell */
+        .cell-email {
+            font-size: 0.83rem; color: var(--text-muted);
+            font-weight: 300;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            padding-right: 1rem;
+        }
+
+        /* Status cell */
+        .cell-status { display: flex; align-items: center; }
+
+        .status-chip {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 0.72rem; font-weight: 500;
+            padding: 4px 10px; border-radius: 8px;
+        }
+
+        .status-chip .s-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+        .status-active {
+            background: rgba(74,222,128,0.1);
+            border: 1px solid rgba(74,222,128,0.25);
+            color: var(--green);
+        }
+
+        .status-active .s-dot {
+            background: var(--green);
+            box-shadow: 0 0 5px var(--green);
+            animation: pulse-dot 2.5s ease infinite;
+        }
+
+        .status-inactive {
+            background: rgba(248,113,113,0.08);
+            border: 1px solid rgba(248,113,113,0.22);
+            color: var(--red);
+        }
+
+        .status-inactive .s-dot { background: var(--red); }
+
+        /* Empty state */
+        .empty-state {
+            display: none;
+            flex-direction: column; align-items: center; justify-content: center;
+            padding: 4rem 2rem; text-align: center;
+        }
+
+        .empty-state.show { display: flex; }
+
+        .empty-icon {
+            width: 54px; height: 54px; border-radius: 16px;
+            background: var(--accent-soft);
+            border: 1px solid rgba(126,232,200,0.2);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .empty-icon svg { width: 24px; height: 24px; color: var(--accent); }
+
+        .empty-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.3rem; font-weight: 300; color: var(--text);
+            margin-bottom: 0.3rem;
+        }
+
+        .empty-sub {
+            font-size: 0.82rem; color: var(--text-muted); font-weight: 300;
+        }
+
+        /* No results (search) */
+        .no-results {
+            display: none;
+            padding: 2.5rem; text-align: center;
+            font-size: 0.85rem; color: var(--text-muted); font-weight: 300;
+        }
+
+        .no-results.show { display: block; }
+
+        @media (max-width: 640px) {
+            .table-head { grid-template-columns: 2fr 2fr 1fr; }
+            .table-head .th:nth-child(3) { display: none; }
+            .doctor-row { grid-template-columns: 2fr 2fr 1fr; }
+            .cell-email { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<!-- ── HEADER ── -->
+<header>
+    <div class="header-inner">
+        <a href="#" class="header-brand">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+            </div>
+            <span class="brand-name">PharmaGuard</span>
+        </a>
+
+        <div class="header-right">
+            <div class="admin-pill">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Admin
+            </div>
+
+            <a href="{{ url_for('auth.logout') }}" class="btn-logout">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Logout
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- ── PAGE ── -->
+<div class="page">
+
+    <!-- Page header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Registered <em>Doctors</em></h1>
+            <p class="page-sub">All practitioners with access to PharmaGuard</p>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-num" id="stat-total">{{ doctors | length }}</div>
+            <div class="stat-label">Total Doctors</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num" id="stat-active" style="color: var(--green);">{{ doctors | selectattr('is_active') | list | length }}</div>
+            <div class="stat-label">Active</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-num" id="stat-inactive" style="color: var(--red);">{{ doctors | rejectattr('is_active') | list | length }}</div>
+            <div class="stat-label">Inactive</div>
+        </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <div class="search-wrap">
+            <span class="search-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+            </span>
+            <input type="text" class="search-input" id="search-input" placeholder="Search by name, phone or email…">
+        </div>
+        <div class="total-badge">Showing <span id="showing-count">{{ doctors | length }}</span> of {{ doctors | length }}</div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+
+        <!-- Empty state (no doctors at all) -->
+        {% if not doctors %}
+        <div class="empty-state show">
+            <div class="empty-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                </svg>
+            </div>
+            <div class="empty-title">No doctors registered yet</div>
+            <div class="empty-sub">Registered practitioners will appear here</div>
+        </div>
+        {% else %}
+
+        <div class="table-head">
+            <div class="th">Doctor</div>
+            <div class="th">Phone</div>
+            <div class="th">Email</div>
+            <div class="th">Status</div>
+        </div>
+
+        <div class="table-body" id="table-body">
+            {% for doc in doctors %}
+            <div class="doctor-row"
+                 data-name="{{ doc.name | lower }}"
+                 data-phone="{{ doc.phone | lower }}"
+                 data-email="{{ doc.email | lower }}"
+                 style="animation-delay: {{ loop.index0 * 0.04 }}s">
+
+                <!-- Name -->
+                <div class="cell-name">
+                    <div class="avatar">{{ doc.name[0] | upper }}</div>
+                    <div>
+                        <div class="doctor-name">{{ doc.name }}</div>
+                        <div class="doctor-id">#DOC{{ '%04d' % doc.id }}</div>
+                    </div>
+                </div>
+
+                <!-- Phone -->
+                <div class="cell-phone">{{ doc.phone }}</div>
+
+                <!-- Email -->
+                <div class="cell-email">{{ doc.email }}</div>
+
+                <!-- Status -->
+                <div class="cell-status">
+                    {% if doc.is_active %}
+                    <span class="status-chip status-active">
+                        <span class="s-dot"></span> Active
+                    </span>
+                    {% else %}
+                    <span class="status-chip status-inactive">
+                        <span class="s-dot"></span> Inactive
+                    </span>
+                    {% endif %}
+                </div>
+
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- No results from search -->
+        <div class="no-results" id="no-results">No doctors match your search.</div>
+
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+    const searchInput   = document.getElementById('search-input');
+    const rows          = document.querySelectorAll('.doctor-row');
+    const showingCount  = document.getElementById('showing-count');
+    const noResults     = document.getElementById('no-results');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const q = searchInput.value.trim().toLowerCase();
+            let visible = 0;
+
+            rows.forEach(row => {
+                const name  = row.dataset.name  || '';
+                const phone = row.dataset.phone || '';
+                const email = row.dataset.email || '';
+                const match = !q || name.includes(q) || phone.includes(q) || email.includes(q);
+                row.style.display = match ? '' : 'none';
+                if (match) visible++;
+            });
+
+            if (showingCount) showingCount.textContent = visible;
+            if (noResults) noResults.classList.toggle('show', visible === 0 && q.length > 0);
+        });
+    }
+</script>
+
+</body>
+</html>

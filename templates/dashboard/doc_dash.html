@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmaGuard — Doctor Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --accent: #7ee8c8;
+            --accent-blue: #38bdf8;
+            --accent-soft: rgba(126, 232, 200, 0.13);
+            --glass: rgba(255, 255, 255, 0.065);
+            --glass-border: rgba(255, 255, 255, 0.12);
+            --glass-hover: rgba(255, 255, 255, 0.09);
+            --text: #eef2f7;
+            --text-muted: rgba(238, 242, 247, 0.5);
+            --text-dim: rgba(238, 242, 247, 0.28);
+            --red: #f87171;
+            --green: #4ade80;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            min-height: 100vh;
+            font-family: 'DM Sans', sans-serif;
+            background: #080f1a;
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 15% 5%,  rgba(56,189,248,0.11) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 85% 85%, rgba(126,232,200,0.09) 0%, transparent 55%),
+                radial-gradient(ellipse 40% 40% at 55% 35%, rgba(99,102,241,0.07) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .orb { position: fixed; border-radius: 50%; filter: blur(85px); opacity: 0.28; animation: drift 14s ease-in-out infinite alternate; pointer-events: none; z-index: 0; }
+        .orb-1 { width: 520px; height: 520px; background: radial-gradient(#38bdf8,transparent); top: -160px; left: -160px; animation-duration: 17s; }
+        .orb-2 { width: 360px; height: 360px; background: radial-gradient(#7ee8c8,transparent); bottom: -100px; right: -100px; animation-duration: 12s; animation-delay: -5s; }
+        .orb-3 { width: 240px; height: 240px; background: radial-gradient(#818cf8,transparent); top: 42%; left: 58%; animation-duration: 19s; animation-delay: -9s; }
+
+        @keyframes drift { from{transform:translate(0,0) scale(1)} to{transform:translate(38px,24px) scale(1.06)} }
+
+        /* ── HEADER ── */
+        header {
+            position: sticky; top: 0; z-index: 100;
+            padding: 16px 0 22px;
+        }
+
+        .header-inner {
+            display: flex; align-items: center; justify-content: space-between;
+            margin: 0 5%;
+            padding: 10px 22px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(32px) saturate(1.5);
+            -webkit-backdrop-filter: blur(32px) saturate(1.5);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+
+        .header-brand {
+            display: flex; align-items: center; gap: 10px;
+            text-decoration: none;
+        }
+
+        .brand-icon {
+            width: 34px; height: 34px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-blue));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .brand-icon svg { width: 17px; height: 17px; }
+
+        .brand-name {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.2rem; font-weight: 500;
+            color: var(--text); letter-spacing: 0.02em;
+        }
+
+        .header-right { display: flex; align-items: center; gap: 14px; }
+
+        .doctor-pill {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 14px; border-radius: 999px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass);
+            font-size: 0.8rem; font-weight: 400; color: var(--text-muted);
+        }
+
+        .doctor-pill .dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--green);
+            box-shadow: 0 0 7px var(--green);
+            animation: pulse-dot 2.5s ease infinite;
+        }
+
+        @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+        .btn-logout {
+            padding: 8px 20px; border-radius: 13px;
+            font-size: 0.83rem; font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+            background: rgba(248,113,113,0.1);
+            border: 1px solid rgba(248,113,113,0.28);
+            color: #f87171; cursor: pointer;
+            transition: all 0.22s; text-decoration: none;
+            display: inline-flex; align-items: center; gap: 7px;
+        }
+
+        .btn-logout:hover {
+            background: rgba(248,113,113,0.2);
+            border-color: rgba(248,113,113,0.5);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(248,113,113,0.15);
+        }
+
+        .btn-logout svg { width: 14px; height: 14px; }
+
+        /* ── MAIN ── */
+        main {
+            position: relative; z-index: 1;
+            min-height: calc(100vh - 90px);
+            display: flex; align-items: center; justify-content: center;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        .dashboard-wrap {
+            width: 100%; max-width: 580px;
+            animation: fadeUp 0.7s cubic-bezier(0.22,1,0.36,1) both;
+        }
+
+        @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+        /* greeting */
+        .greeting {
+            margin-bottom: 2.2rem; text-align: center;
+        }
+
+        .greeting-badge {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 4px 14px 4px 9px; border-radius: 999px;
+            border: 1px solid var(--glass-border); background: var(--glass);
+            backdrop-filter: blur(12px);
+            font-size: 0.7rem; font-weight: 500; letter-spacing: 0.1em;
+            text-transform: uppercase; color: var(--accent);
+            margin-bottom: 1rem;
+        }
+
+        .greeting-badge .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--accent); box-shadow: 0 0 7px var(--accent);
+            animation: pulse-dot 2s ease infinite;
+        }
+
+        .greeting-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 300; line-height: 1.1;
+            letter-spacing: -0.02em; color: var(--text);
+        }
+
+        .greeting-title em { font-style: italic; color: var(--accent); }
+
+        .greeting-sub {
+            font-size: 0.88rem; font-weight: 300;
+            color: var(--text-muted); margin-top: 0.5rem; line-height: 1.6;
+        }
+
+        /* ── UPLOAD CARD ── */
+        .upload-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            padding: 2.2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.25), 0 20px 48px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+        }
+
+        .card-label {
+            font-size: 0.68rem; font-weight: 500;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--text-dim); margin-bottom: 1rem;
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .card-label::after { content:''; flex:1; height:1px; background: var(--glass-border); }
+
+        /* Drop zone */
+        .drop-zone {
+            border: 1.5px dashed rgba(126,232,200,0.3);
+            border-radius: 18px;
+            padding: 2.8rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.25s, background 0.25s, transform 0.2s;
+            background: rgba(126,232,200,0.03);
+            position: relative;
+            margin-bottom: 1.4rem;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: rgba(126,232,200,0.65);
+            background: rgba(126,232,200,0.07);
+            transform: scale(1.01);
+        }
+
+        .drop-zone.has-file {
+            border-color: rgba(126,232,200,0.5);
+            border-style: solid;
+            background: rgba(126,232,200,0.06);
+        }
+
+        .drop-zone.error-state {
+            border-color: rgba(248,113,113,0.5);
+            background: rgba(248,113,113,0.05);
+        }
+
+        /* hide real input */
+        #vcf-input {
+            position: absolute; inset: 0;
+            width: 100%; height: 100%;
+            opacity: 0; cursor: pointer; z-index: 2;
+        }
+
+        .drop-icon {
+            width: 54px; height: 54px; border-radius: 16px;
+            background: var(--accent-soft);
+            border: 1px solid rgba(126,232,200,0.25);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 1.2rem;
+            transition: background 0.25s, transform 0.25s;
+        }
+
+        .drop-zone:hover .drop-icon, .drop-zone.dragover .drop-icon {
+            background: rgba(126,232,200,0.2);
+            transform: translateY(-3px);
+        }
+
+        .drop-icon svg { width: 24px; height: 24px; color: var(--accent); }
+
+        .drop-main {
+            font-size: 0.95rem; font-weight: 500; color: var(--text);
+            margin-bottom: 5px;
+        }
+
+        .drop-sub {
+            font-size: 0.8rem; color: var(--text-muted);
+            font-weight: 300; line-height: 1.6;
+        }
+
+        .drop-sub span {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.75rem; color: var(--accent-blue);
+            background: rgba(56,189,248,0.09);
+            border: 1px solid rgba(56,189,248,0.2);
+            padding: 1px 7px; border-radius: 5px;
+        }
+
+        /* Constraints row */
+        .constraints {
+            display: flex; gap: 0.6rem; justify-content: center;
+            margin-top: 1rem; flex-wrap: wrap;
+        }
+
+        .constraint-chip {
+            font-family: 'DM Mono', monospace; font-size: 0.7rem;
+            padding: 4px 10px; border-radius: 7px;
+            border: 1px solid var(--glass-border);
+            background: rgba(255,255,255,0.04);
+            color: var(--text-dim); letter-spacing: 0.04em;
+        }
+
+        /* File preview */
+        .file-preview {
+            display: none;
+            align-items: center; gap: 12px;
+            padding: 1rem 1.2rem;
+            background: rgba(126,232,200,0.06);
+            border: 1px solid rgba(126,232,200,0.2);
+            border-radius: 13px;
+            margin-bottom: 1.4rem;
+            animation: fadeUp 0.4s ease both;
+        }
+
+        .file-preview.show { display: flex; }
+
+        .file-preview-icon {
+            width: 38px; height: 38px; border-radius: 10px;
+            background: var(--accent-soft);
+            border: 1px solid rgba(126,232,200,0.25);
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .file-preview-icon svg { width: 18px; height: 18px; color: var(--accent); }
+
+        .file-info { flex: 1; min-width: 0; }
+
+        .file-name {
+            font-size: 0.88rem; font-weight: 500; color: var(--text);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            font-family: 'DM Mono', monospace;
+        }
+
+        .file-meta {
+            font-size: 0.73rem; color: var(--text-muted); margin-top: 2px; font-weight: 300;
+        }
+
+        .file-remove {
+            width: 28px; height: 28px; border-radius: 8px;
+            background: rgba(248,113,113,0.1);
+            border: 1px solid rgba(248,113,113,0.25);
+            color: var(--red); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; transition: background 0.2s;
+        }
+
+        .file-remove:hover { background: rgba(248,113,113,0.2); }
+        .file-remove svg { width: 13px; height: 13px; }
+
+        /* Error message */
+        .error-msg {
+            display: none;
+            align-items: center; gap: 8px;
+            padding: 0.65rem 1rem;
+            background: rgba(248,113,113,0.08);
+            border: 1px solid rgba(248,113,113,0.25);
+            border-radius: 10px;
+            font-size: 0.82rem; color: var(--red);
+            margin-bottom: 1.2rem;
+            animation: fadeUp 0.3s ease both;
+        }
+
+        .error-msg.show { display: flex; }
+        .error-msg svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+        /* Drug input */
+        .input-section { margin-bottom: 1.4rem; }
+
+        .input-label {
+            display: block; font-size: 0.68rem; font-weight: 500;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--text-dim); margin-bottom: 0.5rem;
+        }
+
+        .input-wrap { position: relative; }
+
+        .input-icon {
+            position: absolute; left: 14px; top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted); display: flex; pointer-events: none;
+        }
+
+        .input-icon svg { width: 15px; height: 15px; }
+
+        .drug-input {
+            width: 100%;
+            padding: 0.78rem 1rem 0.78rem 2.5rem;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid var(--glass-border);
+            border-radius: 13px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem; font-weight: 300;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+
+        .drug-input::placeholder { color: var(--text-muted); }
+
+        .drug-input:focus {
+            border-color: rgba(126,232,200,0.5);
+            background: rgba(255,255,255,0.09);
+            box-shadow: 0 0 0 3px rgba(126,232,200,0.1);
+        }
+
+        .drug-input:-webkit-autofill {
+            -webkit-box-shadow: 0 0 0 50px #0d1b2a inset;
+            -webkit-text-fill-color: var(--text);
+        }
+
+        .input-hint {
+            font-size: 0.73rem; color: var(--text-dim);
+            margin-top: 0.4rem; font-weight: 300;
+        }
+
+        /* Analyze button */
+        .btn-analyze {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, rgba(126,232,200,0.22), rgba(56,189,248,0.18));
+            border: 1px solid rgba(126,232,200,0.38);
+            border-radius: 14px;
+            color: var(--accent);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem; font-weight: 500;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all 0.25s;
+            position: relative; overflow: hidden;
+            display: flex; align-items: center; justify-content: center; gap: 9px;
+        }
+
+        .btn-analyze::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(126,232,200,0.14), rgba(56,189,248,0.1));
+            opacity: 0; transition: opacity 0.25s;
+        }
+
+        .btn-analyze:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 32px rgba(126,232,200,0.2);
+        }
+
+        .btn-analyze:hover:not(:disabled)::before { opacity: 1; }
+        .btn-analyze:active:not(:disabled) { transform: translateY(0); }
+
+        .btn-analyze:disabled {
+            opacity: 0.38; cursor: not-allowed;
+        }
+
+        .btn-analyze svg { width: 17px; height: 17px; }
+
+        /* Loading spinner inside btn */
+        .spinner {
+            display: none;
+            width: 17px; height: 17px;
+            border: 2px solid rgba(126,232,200,0.25);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .btn-analyze.loading .btn-text { display: none; }
+        .btn-analyze.loading .btn-icon { display: none; }
+        .btn-analyze.loading .spinner { display: block; }
+
+        /* ── RESULT PANEL ── */
+        .result-panel {
+            display: none;
+            margin-top: 1.6rem;
+            animation: fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) both;
+        }
+
+        .result-panel.show { display: block; }
+
+        .result-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 0.9rem; flex-wrap: wrap; gap: 0.6rem;
+        }
+
+        .result-title-row {
+            display: flex; align-items: center; gap: 10px;
+        }
+
+        .result-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 4px 12px; border-radius: 999px;
+            font-size: 0.68rem; font-weight: 500; letter-spacing: 0.09em;
+            text-transform: uppercase;
+        }
+
+        .result-badge.success {
+            background: rgba(74,222,128,0.1);
+            border: 1px solid rgba(74,222,128,0.28);
+            color: var(--green);
+        }
+
+        .result-badge.success .r-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--green); box-shadow: 0 0 5px var(--green);
+        }
+
+        .result-badge.error-badge {
+            background: rgba(248,113,113,0.1);
+            border: 1px solid rgba(248,113,113,0.28);
+            color: var(--red);
+        }
+
+        .result-label {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.1rem; font-weight: 400; color: var(--text);
+        }
+
+        .result-actions {
+            display: flex; gap: 0.5rem;
+        }
+
+        .btn-action {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 7px 15px; border-radius: 11px;
+            font-size: 0.78rem; font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+            cursor: pointer; transition: all 0.2s;
+            border: 1px solid var(--glass-border);
+            background: var(--glass);
+            color: var(--text-muted);
+            backdrop-filter: blur(12px);
+        }
+
+        .btn-action svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+        .btn-action:hover { background: var(--glass-hover); color: var(--text); transform: translateY(-1px); }
+
+        .btn-action.copied {
+            border-color: rgba(74,222,128,0.35);
+            background: rgba(74,222,128,0.08);
+            color: var(--green);
+        }
+
+        .btn-download {
+            border-color: rgba(126,232,200,0.3);
+            background: rgba(126,232,200,0.07);
+            color: var(--accent);
+        }
+
+        .btn-download:hover {
+            background: rgba(126,232,200,0.13);
+            border-color: rgba(126,232,200,0.5);
+            color: var(--accent);
+        }
+
+        /* JSON viewer */
+        .json-card {
+            background: rgba(0,0,0,0.35);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .json-topbar {
+            display: flex; align-items: center; gap: 6px;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(255,255,255,0.03);
+        }
+
+        .json-dot { width: 9px; height: 9px; border-radius: 50%; }
+        .json-dot-r { background: rgba(248,113,113,0.5); }
+        .json-dot-y { background: rgba(251,191,36,0.5); }
+        .json-dot-g { background: rgba(74,222,128,0.5); }
+
+        .json-filename {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.7rem; color: var(--text-dim);
+            letter-spacing: 0.05em; margin-left: 6px;
+        }
+
+        .json-body {
+            padding: 1.4rem 1.6rem;
+            max-height: 420px;
+            overflow-y: auto;
+            font-family: 'DM Mono', monospace;
+            font-size: 0.78rem;
+            line-height: 1.75;
+            color: rgba(238,242,247,0.65);
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .json-body::-webkit-scrollbar { width: 5px; }
+        .json-body::-webkit-scrollbar-track { background: transparent; }
+        .json-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+        /* Syntax colours */
+        .jk { color: var(--accent-blue); }   /* key */
+        .js { color: var(--accent); }         /* string value */
+        .jn { color: #fb923c; }               /* number */
+        .jb { color: #a78bfa; }               /* boolean/null */
+
+        /* Risk summary strip */
+        .risk-strip {
+            display: flex; gap: 0.7rem; flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .risk-item {
+            display: flex; align-items: center; gap: 7px;
+            padding: 6px 14px; border-radius: 11px;
+            font-size: 0.8rem; font-weight: 500;
+        }
+
+        .risk-item .ri-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+        .ri-safe    { background: rgba(74,222,128,0.09);  border: 1px solid rgba(74,222,128,0.25);  color: var(--green); }
+        .ri-safe    .ri-dot { background: var(--green); box-shadow: 0 0 5px var(--green); }
+        .ri-adjust  { background: rgba(251,191,36,0.09);  border: 1px solid rgba(251,191,36,0.25);  color: var(--yellow); }
+        .ri-adjust  .ri-dot { background: var(--yellow); }
+        .ri-toxic   { background: rgba(248,113,113,0.09); border: 1px solid rgba(248,113,113,0.25); color: var(--red); }
+        .ri-toxic   .ri-dot { background: var(--red); }
+        .ri-default { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: var(--text-muted); }
+        .ri-default .ri-dot { background: var(--text-muted); }
+
+        .new-analysis-btn {
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+            width: 100%; margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 13px; font-size: 0.85rem; font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+            background: var(--glass); border: 1px solid var(--glass-border);
+            color: var(--text-muted); cursor: pointer;
+            transition: all 0.2s; backdrop-filter: blur(12px);
+        }
+
+        .new-analysis-btn:hover { background: var(--glass-hover); color: var(--text); transform: translateY(-1px); }
+        .new-analysis-btn svg { width: 14px; height: 14px; }
+
+        /* ── FOLDABLE CLINICAL DETAILS ── */
+        .fold-btn {
+            display: flex; align-items: center; justify-content: space-between;
+            width: 100%; margin-top: 1rem;
+            padding: 0.82rem 1.2rem;
+            border-radius: 13px; font-size: 0.88rem; font-weight: 500;
+            font-family: 'DM Sans', sans-serif;
+            background: var(--accent-soft);
+            border: 1px solid rgba(126,232,200,0.28);
+            color: var(--accent); cursor: pointer;
+            transition: all 0.22s; backdrop-filter: blur(12px);
+        }
+
+        .fold-btn:hover { background: rgba(126,232,200,0.18); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(126,232,200,0.1); }
+
+        .fold-btn-left { display: flex; align-items: center; gap: 8px; }
+        .fold-btn-left svg { width: 15px; height: 15px; }
+
+        .fold-chevron {
+            width: 16px; height: 16px;
+            transition: transform 0.35s cubic-bezier(0.22,1,0.36,1);
+            flex-shrink: 0;
+        }
+
+        .fold-btn.open .fold-chevron { transform: rotate(180deg); }
+
+        .fold-body {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.45s cubic-bezier(0.22,1,0.36,1), opacity 0.35s ease;
+            opacity: 0;
+        }
+
+        .fold-body.open {
+            max-height: 1200px;
+            opacity: 1;
+        }
+
+        .fold-inner {
+            display: flex; flex-direction: column; gap: 0.85rem;
+            padding-top: 0.85rem;
+        }
+
+        /* Detail section card */
+        .detail-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            overflow: hidden;
+            backdrop-filter: blur(16px);
+        }
+
+        .detail-card-head {
+            display: flex; align-items: center; gap: 9px;
+            padding: 0.85rem 1.2rem;
+            border-bottom: 1px solid var(--glass-border);
+            background: rgba(255,255,255,0.03);
+        }
+
+        .detail-card-head svg { width: 14px; height: 14px; color: var(--accent); flex-shrink: 0; }
+
+        .detail-card-title {
+            font-size: 0.72rem; font-weight: 500;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--text-dim);
+        }
+
+        .detail-card-body { padding: 1.1rem 1.2rem; }
+
+        /* Clinical recommendation rows */
+        .rec-row {
+            display: flex; gap: 10px;
+            padding: 0.55rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 0.85rem;
+        }
+
+        .rec-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .rec-row:first-child { padding-top: 0; }
+
+        .rec-key {
+            font-weight: 500; color: var(--text-muted);
+            min-width: 130px; flex-shrink: 0; font-size: 0.82rem;
+        }
+
+        .rec-val { color: var(--text); font-weight: 300; line-height: 1.55; }
+
+        /* LLM summary */
+        .llm-summary {
+            font-size: 0.88rem; line-height: 1.75;
+            color: rgba(238,242,247,0.72); font-weight: 300;
+        }
+
+        .llm-mechanism {
+            margin-top: 0.8rem;
+            font-size: 0.82rem; line-height: 1.7;
+            color: var(--text-muted); font-weight: 300;
+            padding-top: 0.8rem;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* Variants table */
+        .variants-table { width: 100%; border-collapse: collapse; }
+
+        .variants-table th {
+            font-size: 0.67rem; font-weight: 500;
+            letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--text-dim); text-align: left;
+            padding: 0 0.6rem 0.6rem;
+        }
+
+        .variants-table td {
+            font-family: 'DM Mono', monospace;
+            font-size: 0.78rem; color: var(--text-muted);
+            padding: 0.5rem 0.6rem;
+            border-top: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .variants-table td:first-child { color: var(--accent-blue); }
+        .variants-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+        .no-data {
+            font-size: 0.82rem; color: var(--text-dim);
+            font-weight: 300; font-style: italic;
+        }
+
+        /* Dosing card */
+        .dosing-block {
+            display: flex; flex-direction: column; gap: 0.5rem;
+        }
+
+        .dosing-rec {
+            font-size: 0.9rem; color: var(--text);
+            font-weight: 400; line-height: 1.6;
+        }
+
+        .dosing-note {
+            font-size: 0.8rem; color: var(--text-muted);
+            font-weight: 300; line-height: 1.6;
+            padding: 0.6rem 0.9rem;
+            background: rgba(255,255,255,0.03);
+            border-left: 2px solid rgba(126,232,200,0.3);
+            border-radius: 0 8px 8px 0;
+            margin-top: 0.3rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<!-- ── HEADER ── -->
+<header>
+    <div class="header-inner">
+        <a href="{{ url_for('doc.dashboard') }}" class="header-brand">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+            </div>
+            <span class="brand-name">PharmaGuard</span>
+        </a>
+
+        <div class="header-right">
+            <div class="doctor-pill">
+                <span class="dot"></span>
+                Dr. {{ session.get('name', 'Doctor') }}
+            </div>
+
+            <a href="{{ url_for('auth.logout') }}" class="btn-logout">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                    <polyline points="16 17 21 12 16 7"/>
+                    <line x1="21" y1="12" x2="9" y2="12"/>
+                </svg>
+                Logout
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- ── MAIN ── -->
+<main>
+    <div class="dashboard-wrap">
+
+        <!-- Greeting -->
+        <div class="greeting">
+            <div class="greeting-badge">
+                <span class="dot"></span>
+                Pharmacogenomic Analysis
+            </div>
+            <h1 class="greeting-title">Upload a patient's<br><em>VCF file</em></h1>
+            <p class="greeting-sub">Drop a genome file below and enter a drug name to get an instant risk assessment.</p>
+        </div>
+
+        <!-- Upload card -->
+        <div class="upload-card">
+            <div class="card-label">Genome File</div>
+
+            <form method="POST" action="{{ url_for('doc.dashboard') }}" enctype="multipart/form-data" id="analyze-form">
+
+                <!-- Drop zone -->
+                <div class="drop-zone" id="drop-zone">
+                    <input type="file" id="vcf-input" name="vcf_file" accept=".vcf">
+                    <div class="drop-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                    </div>
+                    <div class="drop-main">Drop your VCF file here</div>
+                    <div class="drop-sub">or click to browse &nbsp;·&nbsp; <span>.vcf only</span></div>
+                    <div class="constraints">
+                        <span class="constraint-chip">VCF v4.2</span>
+                        <span class="constraint-chip">Max 5 MB</span>
+                        <span class="constraint-chip">.vcf only</span>
+                    </div>
+                </div>
+
+                <!-- Error message -->
+                <div class="error-msg" id="error-msg">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span id="error-text"></span>
+                </div>
+
+                <!-- File preview -->
+                <div class="file-preview" id="file-preview">
+                    <div class="file-preview-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                    </div>
+                    <div class="file-info">
+                        <div class="file-name" id="file-name">—</div>
+                        <div class="file-meta" id="file-meta">—</div>
+                    </div>
+                    <button type="button" class="file-remove" id="file-remove" title="Remove file">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Drug input -->
+                <div class="input-section">
+                    <label class="input-label" for="drug-name">Drug Name</label>
+                    <div class="input-wrap">
+                        <span class="input-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/>
+                                <line x1="12" y1="8" x2="12" y2="16"/>
+                                <line x1="8" y1="12" x2="16" y2="12"/>
+                            </svg>
+                        </span>
+                        <input
+                            type="text"
+                            id="drug-name"
+                            name="drug"
+                            class="drug-input"
+                            placeholder="e.g. CODEINE, WARFARIN"
+                            autocomplete="off"
+                        >
+                    </div>
+                    <div class="input-hint">Supported: CODEINE · WARFARIN · CLOPIDOGREL · SIMVASTATIN · AZATHIOPRINE · FLUOROURACIL</div>
+                </div>
+
+                <!-- Analyze button -->
+                <button type="submit" class="btn-analyze" id="btn-analyze" disabled>
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"/>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <span class="btn-text">Analyze</span>
+                    <div class="spinner"></div>
+                </button>
+
+            </form>
+        </div>
+
+        <!-- ── RESULT PANEL ── -->
+        <div class="result-panel" id="result-panel">
+
+            <div class="result-header">
+                <div class="result-title-row">
+                    <span class="result-badge success" id="result-badge">
+                        <span class="r-dot"></span> Analysis Complete
+                    </span>
+                    <span class="result-label">Risk Report</span>
+                </div>
+                <div class="result-actions">
+                    <button class="btn-action" id="btn-copy" title="Copy JSON">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                        </svg>
+                        Copy
+                    </button>
+                    <button class="btn-action btn-download" id="btn-download" title="Download JSON">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Download
+                    </button>
+                </div>
+            </div>
+
+            <!-- Risk summary chips -->
+            <div class="risk-strip" id="risk-strip"></div>
+
+            <!-- JSON viewer -->
+            <div class="json-card">
+                <div class="json-topbar">
+                    <span class="json-dot json-dot-r"></span>
+                    <span class="json-dot json-dot-y"></span>
+                    <span class="json-dot json-dot-g"></span>
+                    <span class="json-filename" id="json-filename">result.json</span>
+                </div>
+                <div class="json-body" id="json-body"></div>
+            </div>
+
+            <!-- Foldable clinical details -->
+            <button class="fold-btn" id="fold-btn">
+                <span class="fold-btn-left">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 11l3 3L22 4"/>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                    </svg>
+                    View Clinical Details
+                </span>
+                <svg class="fold-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </button>
+
+            <div class="fold-body" id="fold-body">
+                <div class="fold-inner">
+
+                    <!-- LLM Explanation -->
+                    <div class="detail-card">
+                        <div class="detail-card-head">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            </svg>
+                            <span class="detail-card-title">AI Clinical Summary</span>
+                        </div>
+                        <div class="detail-card-body">
+                            <div class="llm-summary" id="detail-summary">—</div>
+                            <div class="llm-mechanism" id="detail-mechanism" style="display:none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Clinical Recommendation -->
+                    <div class="detail-card">
+                        <div class="detail-card-head">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            <span class="detail-card-title">Clinical Recommendation</span>
+                        </div>
+                        <div class="detail-card-body" id="detail-rec">
+                            <span class="no-data">No recommendation data.</span>
+                        </div>
+                    </div>
+
+                    <!-- Dosing Guidance -->
+                    <div class="detail-card">
+                        <div class="detail-card-head">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 8h1a4 4 0 0 1 0 8h-1"/>
+                                <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                                <line x1="6" y1="1" x2="6" y2="4"/>
+                                <line x1="10" y1="1" x2="10" y2="4"/>
+                                <line x1="14" y1="1" x2="14" y2="4"/>
+                            </svg>
+                            <span class="detail-card-title">Dosing Guidance</span>
+                        </div>
+                        <div class="detail-card-body" id="detail-dosing">
+                            <span class="no-data">No dosing data.</span>
+                        </div>
+                    </div>
+
+                    <!-- Detected Variants -->
+                    <div class="detail-card">
+                        <div class="detail-card-head">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                            </svg>
+                            <span class="detail-card-title">Detected Variants</span>
+                        </div>
+                        <div class="detail-card-body" id="detail-variants">
+                            <span class="no-data">No variant data.</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <button class="new-analysis-btn" id="new-analysis-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10"/>
+                    <path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+                </svg>
+                Run Another Analysis
+            </button>
+        </div>
+
+    </div>
+</main>
+
+<script>
+    const dropZone      = document.getElementById('drop-zone');
+    const fileInput     = document.getElementById('vcf-input');
+    const preview       = document.getElementById('file-preview');
+    const fileName      = document.getElementById('file-name');
+    const fileMeta      = document.getElementById('file-meta');
+    const fileRemove    = document.getElementById('file-remove');
+    const errorMsg      = document.getElementById('error-msg');
+    const errorText     = document.getElementById('error-text');
+    const analyzeBtn    = document.getElementById('btn-analyze');
+    const drugInput     = document.getElementById('drug-name');
+    const form          = document.getElementById('analyze-form');
+    const uploadCard    = document.querySelector('.upload-card');
+    const resultPanel   = document.getElementById('result-panel');
+    const jsonBody      = document.getElementById('json-body');
+    const jsonFilename  = document.getElementById('json-filename');
+    const riskStrip     = document.getElementById('risk-strip');
+    const btnCopy       = document.getElementById('btn-copy');
+    const btnDownload   = document.getElementById('btn-download');
+    const newAnalysisBtn= document.getElementById('new-analysis-btn');
+
+    const MAX_SIZE = 5 * 1024 * 1024;
+    let rawJson = '';
+
+    /* ── Helpers ── */
+    function formatSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    function showError(msg) {
+        errorText.textContent = msg;
+        errorMsg.classList.add('show');
+        dropZone.classList.add('error-state');
+        dropZone.classList.remove('has-file');
+        preview.classList.remove('show');
+        analyzeBtn.disabled = true;
+    }
+
+    function clearError() {
+        errorMsg.classList.remove('show');
+        dropZone.classList.remove('error-state');
+    }
+
+    function clearFile() {
+        fileInput.value = '';
+        preview.classList.remove('show');
+        dropZone.classList.remove('has-file', 'error-state');
+        clearError();
+        checkReady();
+    }
+
+    function checkReady() {
+        const hasFile = fileInput.files && fileInput.files.length > 0;
+        analyzeBtn.disabled = !hasFile;
+    }
+
+    function handleFile(file) {
+        clearError();
+        if (!file.name.toLowerCase().endsWith('.vcf')) {
+            showError('Invalid file type. Only .vcf files are accepted.');
+            return;
+        }
+        if (file.size > MAX_SIZE) {
+            showError(`File too large (${formatSize(file.size)}). Maximum allowed size is 5 MB.`);
+            return;
+        }
+        fileName.textContent = file.name;
+        fileMeta.textContent = formatSize(file.size) + ' · VCF file';
+        preview.classList.add('show');
+        dropZone.classList.add('has-file');
+        checkReady();
+    }
+
+    /* ── Syntax highlight JSON ── */
+    function highlightJson(json) {
+        return json
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(
+                /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+                match => {
+                    if (/^"/.test(match)) {
+                        if (/:$/.test(match)) return `<span class="jk">${match}</span>`;
+                        return `<span class="js">${match}</span>`;
+                    }
+                    if (/true|false|null/.test(match)) return `<span class="jb">${match}</span>`;
+                    return `<span class="jn">${match}</span>`;
+                }
+            );
+    }
+
+    /* ── Risk chip from result ── */
+    function buildRiskStrip(data) {
+        riskStrip.innerHTML = '';
+        const risk   = data?.risk_assessment || {};
+        const label  = risk.risk_label || '';
+        const drug   = data?.drug || '';
+        const gene   = data?.pharmacogenomic_profile?.primary_gene || '';
+        const pheno  = data?.pharmacogenomic_profile?.phenotype || '';
+        const conf   = risk.confidence_score != null ? `${Math.round(risk.confidence_score * 100)}% confidence` : null;
+        const sev    = risk.severity || null;
+
+        const riskClass = {
+            'Safe': 'ri-safe',
+            'Adjust Dosage': 'ri-adjust',
+            'Toxic': 'ri-toxic',
+            'Ineffective': 'ri-toxic',
+        }[label] || 'ri-default';
+
+        [
+            { label: drug,   cls: 'ri-default' },
+            { label: label || 'Unknown Risk', cls: riskClass },
+            { label: gene,   cls: 'ri-default' },
+            { label: pheno,  cls: 'ri-default' },
+            { label: conf,   cls: 'ri-default' },
+            { label: sev ? `Severity: ${sev}` : null, cls: 'ri-default' },
+        ].forEach(c => {
+            if (!c.label) return;
+            const el = document.createElement('div');
+            el.className = `risk-item ${c.cls}`;
+            el.innerHTML = `<span class="ri-dot"></span>${c.label}`;
+            riskStrip.appendChild(el);
+        });
+    }
+
+    /* ── Show result panel ── */
+    function showResult(jsonString) {
+        rawJson = jsonString;
+        let parsed;
+        try { parsed = JSON.parse(jsonString); } catch(e) { parsed = null; }
+
+        const pretty = parsed ? JSON.stringify(parsed, null, 2) : jsonString;
+        jsonBody.innerHTML = highlightJson(pretty);
+
+        // Unwrap array if pipeline returns [{...}]
+        const record = Array.isArray(parsed) ? parsed[0] : parsed;
+        if (record) { buildRiskStrip(record); populateDetails(record); }
+
+        const drug = parsed?.drug || 'result';
+        jsonFilename.textContent = `${drug.toLowerCase()}_risk_report.json`;
+
+        // Slide upload card up, show result
+        uploadCard.style.display = 'none';
+        document.querySelector('.greeting').style.display = 'none';
+        resultPanel.classList.add('show');
+        resultPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    /* ── AJAX submit ── */
+    form.addEventListener('submit', async e => {
+        e.preventDefault();
+        if (analyzeBtn.disabled) return;
+
+        analyzeBtn.classList.add('loading');
+        analyzeBtn.disabled = true;
+
+        const fd = new FormData(form);
+
+        try {
+            const res = await fetch(form.action, { method: 'POST', body: fd });
+            const text = await res.text();
+
+            // Try to detect if Flask returned JSON or an error page
+            let jsonStr = text;
+            try { JSON.parse(text); } catch(e) {
+                // Flask returned HTML error — extract message if possible
+                const match = text.match(/<p>(.*?)<\/p>/);
+                jsonStr = JSON.stringify({ error: match ? match[1] : 'Server error. Check your Flask route.' }, null, 2);
+            }
+
+            showResult(jsonStr);
+        } catch(err) {
+            showResult(JSON.stringify({ error: err.message }, null, 2));
+        } finally {
+            analyzeBtn.classList.remove('loading');
+            analyzeBtn.disabled = false;
+        }
+    });
+
+    /* ── Copy to clipboard ── */
+    btnCopy.addEventListener('click', async () => {
+        try {
+            await navigator.clipboard.writeText(rawJson);
+            btnCopy.classList.add('copied');
+            btnCopy.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg> Copied!`;
+            setTimeout(() => {
+                btnCopy.classList.remove('copied');
+                btnCopy.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg> Copy`;
+            }, 2200);
+        } catch(e) {
+            alert('Copy failed. Please select and copy manually.');
+        }
+    });
+
+    /* ── Download JSON ── */
+    btnDownload.addEventListener('click', () => {
+        const blob = new Blob([rawJson], { type: 'application/json' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url;
+        a.download = jsonFilename.textContent || 'risk_report.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    /* ── New analysis ── */
+    newAnalysisBtn.addEventListener('click', () => {
+        resultPanel.classList.remove('show');
+        uploadCard.style.display = '';
+        document.querySelector('.greeting').style.display = '';
+        clearFile();
+        drugInput.value = '';
+        rawJson = '';
+        riskStrip.innerHTML = '';
+        jsonBody.innerHTML = '';
+        foldBody.classList.remove('open');
+        foldBtn.classList.remove('open');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    /* ── Fold toggle ── */
+    const foldBtn  = document.getElementById('fold-btn');
+    const foldBody = document.getElementById('fold-body');
+
+    foldBtn.addEventListener('click', () => {
+        const open = foldBody.classList.toggle('open');
+        foldBtn.classList.toggle('open', open);
+        foldBtn.querySelector('.fold-btn-left').childNodes[2].textContent =
+            open ? ' Hide Clinical Details' : ' View Clinical Details';
+    });
+
+    /* ── Populate clinical detail cards from parsed JSON ── */
+    function populateDetails(data) {
+        if (!data) return;
+
+        // ── LLM Summary ──
+        const llmEl  = document.getElementById('detail-summary');
+        const mechEl = document.getElementById('detail-mechanism');
+        const llm    = data.llm_generated_explanation || {};
+
+        llmEl.textContent = llm.summary || 'No AI summary available.';
+
+        if (llm.mechanism) {
+            mechEl.textContent = llm.mechanism;
+            mechEl.style.display = '';
+        } else {
+            mechEl.style.display = 'none';
+        }
+
+        // Patient note appended below mechanism
+        const existingNote = document.getElementById('detail-patient-note');
+        if (existingNote) existingNote.remove();
+        if (llm.patient_note) {
+            const noteEl = document.createElement('div');
+            noteEl.id = 'detail-patient-note';
+            noteEl.className = 'dosing-note';
+            noteEl.style.marginTop = '0.8rem';
+            noteEl.innerHTML = `<strong style="color:var(--text-muted);font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;">Patient Note</strong><br>${llm.patient_note}`;
+            mechEl.parentNode.appendChild(noteEl);
+        }
+
+        // ── Clinical Recommendation ──
+        const recEl = document.getElementById('detail-rec');
+        const rec   = data.clinical_recommendation || {};
+        const recKeys = Object.keys(rec);
+        if (recKeys.length) {
+            recEl.innerHTML = recKeys.map(k => `
+                <div class="rec-row">
+                    <span class="rec-key">${k.replace(/_/g, ' ')}</span>
+                    <span class="rec-val">${typeof rec[k] === 'object' ? JSON.stringify(rec[k]) : rec[k]}</span>
+                </div>`).join('');
+        } else {
+            recEl.innerHTML = '<span class="no-data">No recommendation data.</span>';
+        }
+
+        // ── Dosing Guidance ──
+        const dosingEl = document.getElementById('detail-dosing');
+        const action   = rec.action || null;
+        const guideline= rec.guideline || null;
+        if (action || guideline) {
+            dosingEl.innerHTML = `
+                <div class="dosing-block">
+                    ${action   ? `<div class="dosing-rec">${action}</div>` : ''}
+                    ${guideline? `<div class="dosing-note">Guideline: <strong>${guideline}</strong></div>` : ''}
+                </div>`;
+        } else {
+            dosingEl.innerHTML = '<span class="no-data">No dosing data.</span>';
+        }
+
+        // ── Detected Variants ──
+        const varEl    = document.getElementById('detail-variants');
+        const profile  = data.pharmacogenomic_profile || {};
+        const variants = profile.detected_variants || [];
+
+        if (variants.length) {
+            // Deduplicate by rsid
+            const seen = new Set();
+            const unique = variants.filter(v => {
+                if (seen.has(v.rsid)) return false;
+                seen.add(v.rsid); return true;
+            });
+
+            varEl.innerHTML = `
+                <table class="variants-table">
+                    <thead>
+                        <tr>
+                            <th>rsID</th>
+                            <th>Gene</th>
+                            <th>Diplotype</th>
+                            <th>Phenotype</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${unique.map(v => `
+                        <tr>
+                            <td>${v.rsid || '—'}</td>
+                            <td>${v.gene || profile.primary_gene || '—'}</td>
+                            <td>${v.diplotype || profile.diplotype || '—'}</td>
+                            <td>${v.phenotype || profile.phenotype || '—'}</td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+                <div style="margin-top:0.7rem;font-size:0.72rem;color:var(--text-dim);font-weight:300;">
+                    ${unique.length} unique variant${unique.length !== 1 ? 's' : ''} detected · Gene: ${profile.primary_gene || '—'} · ${profile.diplotype || ''}
+                </div>`;
+        } else {
+            varEl.innerHTML = '<span class="no-data">No variants detected in this file.</span>';
+        }
+    }
+
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length) handleFile(fileInput.files[0]);
+    });
+
+    fileRemove.addEventListener('click', clearFile);
+    drugInput.addEventListener('input', checkReady);
+
+    ['dragenter', 'dragover'].forEach(evt => {
+        dropZone.addEventListener(evt, e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    });
+
+    ['dragleave', 'dragend'].forEach(evt => {
+        dropZone.addEventListener(evt, () => dropZone.classList.remove('dragover'));
+    });
+
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            fileInput.files = dt.files;
+            handleFile(file);
+        }
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmaGuard — Pharmacogenomic Risk Prediction</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --accent: #7ee8c8;
+            --accent-blue: #38bdf8;
+            --accent-soft: rgba(126,232,200,0.13);
+            --glass: rgba(255,255,255,0.055);
+            --glass-border: rgba(255,255,255,0.11);
+            --glass-hover: rgba(255,255,255,0.085);
+            --text: #eef2f7;
+            --text-muted: rgba(238,242,247,0.5);
+            --text-dim: rgba(238,242,247,0.28);
+            --green: #4ade80;
+            --yellow: #fbbf24;
+            --red: #f87171;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #080f1a;
+            color: var(--text);
+            overflow-x: hidden;
+        }
+
+        /* ── Ambient background ── */
+        body::before {
+            content: '';
+            position: fixed; inset: 0; z-index: 0;
+            background:
+                radial-gradient(ellipse 80% 55% at 10% 0%,  rgba(56,189,248,0.11) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 45% at 90% 90%, rgba(126,232,200,0.09) 0%, transparent 55%),
+                radial-gradient(ellipse 45% 40% at 55% 40%, rgba(99,102,241,0.07) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .orb { position: fixed; border-radius: 50%; filter: blur(90px); opacity: 0.28; animation: drift 14s ease-in-out infinite alternate; pointer-events: none; z-index: 0; }
+        .orb-1 { width: 600px; height: 600px; background: radial-gradient(#38bdf8,transparent); top: -200px; left: -200px; animation-duration: 17s; }
+        .orb-2 { width: 400px; height: 400px; background: radial-gradient(#7ee8c8,transparent); bottom: -120px; right: -120px; animation-duration: 12s; animation-delay: -5s; }
+        .orb-3 { width: 280px; height: 280px; background: radial-gradient(#818cf8,transparent); top: 42%; left: 58%; animation-duration: 19s; animation-delay: -9s; }
+
+        @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(40px,28px) scale(1.07); } }
+
+        /* ── Shared layout ── */
+        .container { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 0 2rem; }
+
+        /* ── NAV ── */
+        nav {
+            position: sticky; top: 0; z-index: 100;
+            padding: 18px 0 26px;
+        }
+
+        .nav-inner {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 22px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.32);
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(32px) saturate(1.5);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.12);
+        }
+
+        .nav-logo {
+            display: flex; align-items: center; gap: 10px;
+            text-decoration: none;
+        }
+
+        .nav-logo-icon {
+            width: 34px; height: 34px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-blue));
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .nav-logo-icon svg { width: 17px; height: 17px; }
+
+        .nav-logo-name {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.25rem; font-weight: 500;
+            color: var(--text); letter-spacing: 0.02em;
+        }
+
+        .nav-links { display: flex; gap: 4px; }
+
+        .nav-links a {
+            text-decoration: none; color: var(--text-muted);
+            font-size: 0.88rem; font-weight: 400;
+            padding: 7px 15px; border-radius: 11px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .nav-links a:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+
+        .nav-cta {
+            display: flex; gap: 8px;
+        }
+
+        .btn-ghost {
+            padding: 8px 20px; border-radius: 13px; font-size: 0.85rem; font-weight: 500;
+            background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.18);
+            color: var(--text); cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center;
+        }
+
+        .btn-ghost:hover { background: rgba(255,255,255,0.12); transform: translateY(-1px); }
+
+        .btn-primary {
+            padding: 8px 20px; border-radius: 13px; font-size: 0.85rem; font-weight: 500;
+            background: linear-gradient(135deg, rgba(126,232,200,0.28), rgba(56,189,248,0.22));
+            border: 1px solid rgba(126,232,200,0.4); color: var(--accent);
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: all 0.25s; text-decoration: none; display: inline-flex; align-items: center;
+        }
+
+        .btn-primary:hover { box-shadow: 0 6px 20px rgba(126,232,200,0.18); transform: translateY(-1px); }
+
+        /* ── HERO ── */
+        .hero {
+            position: relative; z-index: 1;
+            padding: 7rem 0 5rem;
+            text-align: center;
+        }
+
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 5px 16px 5px 10px; border-radius: 999px;
+            border: 1px solid var(--glass-border); background: var(--glass);
+            backdrop-filter: blur(12px);
+            font-size: 0.72rem; font-weight: 500; letter-spacing: 0.1em;
+            text-transform: uppercase; color: var(--accent);
+            margin-bottom: 2rem;
+            animation: fadeUp 0.7s ease both;
+        }
+
+        .hero-badge .dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--accent); box-shadow: 0 0 8px var(--accent);
+            animation: pulse-dot 2s ease infinite;
+        }
+
+        @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+        .hero-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(3rem, 7vw, 5.5rem);
+            font-weight: 300; line-height: 1.05;
+            letter-spacing: -0.025em;
+            color: var(--text); margin-bottom: 0.6rem;
+            animation: fadeUp 0.7s 0.08s ease both;
+        }
+
+        .hero-title em { font-style: italic; color: var(--accent); }
+
+        .hero-title .line2 {
+            display: block;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-sub {
+            font-size: 1.05rem; font-weight: 300; color: var(--text-muted);
+            max-width: 520px; margin: 0 auto 2.8rem;
+            line-height: 1.7;
+            animation: fadeUp 0.7s 0.14s ease both;
+        }
+
+        .hero-sub strong { color: var(--text); font-weight: 500; }
+
+        .hero-actions {
+            display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+            margin-bottom: 4rem;
+            animation: fadeUp 0.7s 0.2s ease both;
+        }
+
+        .btn-hero-primary {
+            padding: 13px 32px; border-radius: 15px; font-size: 0.95rem; font-weight: 500;
+            background: linear-gradient(135deg, rgba(126,232,200,0.25), rgba(56,189,248,0.2));
+            border: 1px solid rgba(126,232,200,0.45); color: var(--accent);
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: all 0.25s; text-decoration: none;
+            box-shadow: 0 4px 20px rgba(126,232,200,0.1);
+        }
+
+        .btn-hero-primary:hover { box-shadow: 0 8px 32px rgba(126,232,200,0.22); transform: translateY(-2px); }
+
+        .btn-hero-ghost {
+            padding: 13px 32px; border-radius: 15px; font-size: 0.95rem; font-weight: 500;
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+            color: var(--text-muted); cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: all 0.25s; text-decoration: none;
+        }
+
+        .btn-hero-ghost:hover { background: rgba(255,255,255,0.1); color: var(--text); transform: translateY(-2px); }
+
+        /* Hero stat bar */
+        .hero-stats {
+            display: flex; gap: 0; justify-content: center;
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            overflow: hidden;
+            max-width: 680px; margin: 0 auto;
+            animation: fadeUp 0.7s 0.28s ease both;
+        }
+
+        .h-stat {
+            flex: 1; padding: 1.4rem 1rem;
+            text-align: center;
+            border-right: 1px solid var(--glass-border);
+            transition: background 0.2s;
+        }
+
+        .h-stat:last-child { border-right: none; }
+        .h-stat:hover { background: rgba(255,255,255,0.04); }
+
+        .h-stat-num {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2rem; font-weight: 400; color: var(--accent);
+            line-height: 1; margin-bottom: 5px;
+        }
+
+        .h-stat-label {
+            font-size: 0.7rem; color: var(--text-dim);
+            letter-spacing: 0.07em; text-transform: uppercase; font-weight: 500;
+        }
+
+        /* ── SECTION COMMONS ── */
+        section { position: relative; z-index: 1; padding: 5rem 0; }
+
+        .section-tag {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.7rem; font-weight: 500;
+            letter-spacing: 0.12em; text-transform: uppercase;
+            color: var(--text-dim); margin-bottom: 1rem;
+        }
+
+        .section-tag .num {
+            font-family: 'DM Mono', monospace; font-size: 0.65rem;
+            color: var(--accent); background: var(--accent-soft);
+            padding: 2px 8px; border-radius: 6px;
+        }
+
+        .section-tag::after { content:''; flex:1; height:1px; background: var(--glass-border); }
+
+        .section-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 300; line-height: 1.15;
+            letter-spacing: -0.015em; color: var(--text);
+            margin-bottom: 0.5rem;
+        }
+
+        .section-title em { font-style: italic; color: var(--accent); }
+
+        .section-desc {
+            font-size: 0.95rem; font-weight: 300; color: var(--text-muted);
+            line-height: 1.75; max-width: 540px;
+            margin-bottom: 2.5rem;
+        }
+
+        /* glass card base */
+        .glass-card {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            backdrop-filter: blur(20px);
+            padding: 2rem;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.06);
+            transition: background 0.25s, transform 0.25s, box-shadow 0.25s;
+        }
+
+        .glass-card:hover { background: var(--glass-hover); transform: translateY(-2px); box-shadow: 0 10px 36px rgba(0,0,0,0.28); }
+
+        /* ── PROBLEM STATEMENT ── */
+        .problem-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+        }
+
+        .problem-card {
+            padding: 1.6rem 1.8rem;
+            border-radius: 18px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass);
+            backdrop-filter: blur(16px);
+            transition: background 0.2s, border-color 0.2s, transform 0.2s;
+        }
+
+        .problem-card:hover { background: var(--glass-hover); border-color: rgba(126,232,200,0.22); transform: translateY(-2px); }
+
+        .problem-card.accent-card {
+            grid-column: span 2;
+            border-color: rgba(126,232,200,0.2);
+            background: rgba(126,232,200,0.05);
+        }
+
+        .problem-icon {
+            font-size: 1.5rem; margin-bottom: 0.9rem;
+        }
+
+        .problem-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.35rem; font-weight: 400; color: var(--text);
+            margin-bottom: 0.5rem; letter-spacing: -0.01em;
+        }
+
+        .problem-text {
+            font-size: 0.87rem; line-height: 1.7;
+            color: var(--text-muted); font-weight: 300;
+        }
+
+        .big-stat-text {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 3.5rem; font-weight: 300; color: var(--accent);
+            line-height: 1; margin-bottom: 0.4rem;
+        }
+
+        /* ── HOW IT WORKS ── */
+        .steps-wrap {
+            display: flex; flex-direction: column; gap: 1px;
+            border: 1px solid var(--glass-border);
+            border-radius: 20px; overflow: hidden;
+            backdrop-filter: blur(16px);
+        }
+
+        .step {
+            display: flex; align-items: flex-start; gap: 1.5rem;
+            padding: 1.6rem 2rem;
+            background: var(--glass);
+            border-bottom: 1px solid var(--glass-border);
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .step:last-child { border-bottom: none; }
+        .step:hover { background: var(--glass-hover); }
+
+        .step-num {
+            font-family: 'DM Mono', monospace; font-size: 0.7rem;
+            color: var(--accent); background: var(--accent-soft);
+            padding: 5px 10px; border-radius: 9px;
+            flex-shrink: 0; margin-top: 3px; font-weight: 500;
+            letter-spacing: 0.05em;
+        }
+
+        .step-content {}
+
+        .step-title {
+            font-size: 0.95rem; font-weight: 500; color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .step-desc {
+            font-size: 0.85rem; color: var(--text-muted); font-weight: 300; line-height: 1.6;
+        }
+
+        .step-tag {
+            font-family: 'DM Mono', monospace; font-size: 0.72rem;
+            color: var(--accent-blue); background: rgba(56,189,248,0.08);
+            border: 1px solid rgba(56,189,248,0.22);
+            padding: 2px 9px; border-radius: 6px;
+            display: inline-block; margin-top: 7px;
+        }
+
+        /* ── FEATURES ── */
+        .features-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;
+        }
+
+        .feature-card {
+            padding: 1.7rem 1.6rem;
+            border-radius: 18px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass);
+            backdrop-filter: blur(16px);
+            transition: background 0.2s, border-color 0.2s, transform 0.25s;
+        }
+
+        .feature-card:hover { background: var(--glass-hover); border-color: rgba(126,232,200,0.2); transform: translateY(-3px); }
+
+        .feature-icon-wrap {
+            width: 42px; height: 42px; border-radius: 12px;
+            background: var(--accent-soft);
+            border: 1px solid rgba(126,232,200,0.25);
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 1rem;
+        }
+
+        .feature-icon-wrap svg { width: 20px; height: 20px; color: var(--accent); }
+
+        .feature-title {
+            font-size: 0.95rem; font-weight: 500; color: var(--text);
+            margin-bottom: 6px;
+        }
+
+        .feature-desc {
+            font-size: 0.83rem; color: var(--text-muted); font-weight: 300; line-height: 1.65;
+        }
+
+        /* ── GENES / DRUGS ── */
+        .chip-row { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+
+        .gene-chip {
+            font-family: 'DM Mono', monospace; font-size: 0.82rem;
+            padding: 7px 16px; border-radius: 11px;
+            border: 1px solid rgba(56,189,248,0.3);
+            background: rgba(56,189,248,0.07); color: var(--accent-blue);
+            letter-spacing: 0.04em; transition: background 0.2s, transform 0.15s;
+        }
+
+        .gene-chip:hover { background: rgba(56,189,248,0.14); transform: translateY(-1px); }
+
+        .drug-chip {
+            font-family: 'DM Mono', monospace; font-size: 0.82rem;
+            padding: 7px 16px; border-radius: 11px;
+            border: 1px solid rgba(126,232,200,0.25);
+            background: rgba(126,232,200,0.06); color: var(--accent);
+            letter-spacing: 0.04em; transition: background 0.2s, transform 0.15s;
+        }
+
+        .drug-chip:hover { background: rgba(126,232,200,0.12); transform: translateY(-1px); }
+
+        /* risk chips */
+        .risk-chip { display: flex; align-items: center; gap: 7px; font-size: 0.85rem; padding: 7px 16px; border-radius: 11px; font-weight: 500; }
+        .rc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .risk-safe { background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.25); color: var(--green); }
+        .risk-safe .rc-dot { background: var(--green); box-shadow: 0 0 6px var(--green); }
+        .risk-adjust { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); color: var(--yellow); }
+        .risk-adjust .rc-dot { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+        .risk-toxic { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.25); color: var(--red); }
+        .risk-toxic .rc-dot { background: var(--red); box-shadow: 0 0 6px var(--red); }
+        .risk-ineffective { background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.25); color: #fb923c; }
+        .risk-ineffective .rc-dot { background: #fb923c; }
+        .risk-unknown { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); color: var(--text-muted); }
+        .risk-unknown .rc-dot { background: var(--text-muted); }
+
+        /* ── TECH STACK ── */
+        .tech-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.85rem;
+        }
+
+        .tech-card {
+            padding: 1.3rem 1.2rem;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass);
+            backdrop-filter: blur(14px);
+            text-align: center;
+            transition: background 0.2s, transform 0.2s;
+        }
+
+        .tech-card:hover { background: var(--glass-hover); transform: translateY(-2px); }
+
+        .tech-label {
+            font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase;
+            color: var(--text-dim); font-weight: 500; margin-bottom: 6px;
+        }
+
+        .tech-name {
+            font-size: 0.92rem; font-weight: 500; color: var(--text);
+        }
+
+        .tech-sub {
+            font-size: 0.75rem; color: var(--text-muted); margin-top: 3px; font-weight: 300;
+        }
+
+        /* ── TEAM ── */
+        .team-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem;
+        }
+
+        .team-card {
+            padding: 1.7rem 1.4rem;
+            border-radius: 18px;
+            border: 1px solid var(--glass-border);
+            background: var(--glass);
+            backdrop-filter: blur(16px);
+            text-align: center;
+            transition: background 0.2s, transform 0.25s, border-color 0.2s;
+        }
+
+        .team-card:hover { background: var(--glass-hover); transform: translateY(-3px); border-color: rgba(126,232,200,0.2); }
+
+        .team-avatar {
+            width: 60px; height: 60px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-soft), rgba(56,189,248,0.15));
+            border: 1px solid rgba(126,232,200,0.3);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 0.9rem;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.4rem; font-weight: 400; color: var(--accent);
+        }
+
+        .team-name {
+            font-size: 0.92rem; font-weight: 500; color: var(--text); margin-bottom: 4px;
+        }
+
+        .team-role {
+            font-size: 0.76rem; color: var(--text-muted); font-weight: 300; letter-spacing: 0.03em;
+        }
+
+        /* ── CTA ── */
+        .cta-section {
+            padding: 4rem 0 7rem;
+        }
+
+        .cta-inner {
+            background: var(--glass);
+            border: 1px solid rgba(126,232,200,0.2);
+            border-radius: 24px;
+            backdrop-filter: blur(24px);
+            padding: 4rem 3rem;
+            text-align: center;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.07);
+            position: relative; overflow: hidden;
+        }
+
+        .cta-inner::before {
+            content: '';
+            position: absolute; inset: 0;
+            background: radial-gradient(ellipse 60% 50% at 50% 100%, rgba(126,232,200,0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .cta-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: clamp(2rem, 4vw, 3.2rem);
+            font-weight: 300; line-height: 1.15;
+            color: var(--text); margin-bottom: 0.7rem;
+        }
+
+        .cta-title em { font-style: italic; color: var(--accent); }
+
+        .cta-sub {
+            font-size: 0.95rem; font-weight: 300; color: var(--text-muted);
+            margin-bottom: 2rem; max-width: 420px; margin-left: auto; margin-right: auto; line-height: 1.7;
+        }
+
+        .cta-actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+
+        .btn-cta {
+            padding: 13px 32px; border-radius: 15px; font-size: 0.9rem; font-weight: 500;
+            background: linear-gradient(135deg, rgba(126,232,200,0.25), rgba(56,189,248,0.2));
+            border: 1px solid rgba(126,232,200,0.4); color: var(--accent);
+            cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: all 0.25s; text-decoration: none;
+        }
+
+        .btn-cta:hover { box-shadow: 0 8px 28px rgba(126,232,200,0.2); transform: translateY(-2px); }
+
+        .btn-cta-outline {
+            padding: 13px 32px; border-radius: 15px; font-size: 0.9rem; font-weight: 500;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.15);
+            color: var(--text-muted); cursor: pointer; font-family: 'DM Sans', sans-serif;
+            transition: all 0.25s; text-decoration: none;
+        }
+
+        .btn-cta-outline:hover { background: rgba(255,255,255,0.09); color: var(--text); transform: translateY(-2px); }
+
+        /* footer */
+        footer {
+            position: relative; z-index: 1;
+            border-top: 1px solid var(--glass-border);
+            padding: 2rem 0;
+        }
+
+        .footer-inner {
+            display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+        }
+
+        .footer-brand {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1rem; font-weight: 400; color: var(--text-muted);
+            letter-spacing: 0.02em;
+        }
+
+        .footer-note {
+            font-size: 0.75rem; color: var(--text-dim); font-weight: 300;
+        }
+
+        .footer-tag {
+            font-family: 'DM Mono', monospace; font-size: 0.7rem;
+            color: var(--text-dim); letter-spacing: 0.07em;
+        }
+
+        /* ── Animations ── */
+        @keyframes fadeUp { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:translateY(0); } }
+
+        /* ── Divider ── */
+        .h-divider { height: 1px; background: var(--glass-border); margin: 0; }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .features-grid { grid-template-columns: 1fr 1fr; }
+            .tech-grid { grid-template-columns: 1fr 1fr; }
+            .team-grid { grid-template-columns: 1fr 1fr; }
+            .problem-grid { grid-template-columns: 1fr; }
+            .problem-card.accent-card { grid-column: span 1; }
+            .nav-links { display: none; }
+        }
+
+        @media (max-width: 520px) {
+            .features-grid { grid-template-columns: 1fr; }
+            .tech-grid { grid-template-columns: 1fr 1fr; }
+            .team-grid { grid-template-columns: 1fr 1fr; }
+            .hero-stats { flex-wrap: wrap; }
+        }
+
+        /* spacing util */
+        .mb-10 { margin-bottom: 0.6rem; }
+        .mb-16 { margin-bottom: 1rem; }
+        .mb-24 { margin-bottom: 1.5rem; }
+        .mt-10 { margin-top: 0.6rem; }
+    </style>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+<div class="orb orb-3"></div>
+
+<!-- ── NAV ── -->
+<nav>
+    <div class="container">
+        <div class="nav-inner">
+            <a href="#" class="nav-logo">
+                <div class="nav-logo-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <span class="nav-logo-name">PharmaGuard</span>
+            </a>
+            <div class="nav-links">
+                <a href="#problem">Problem</a>
+                <a href="#how">How It Works</a>
+                <a href="#features">Features</a>
+                <a href="#team">Team</a>
+            </div>
+            <div class="nav-cta">
+                <a href="{{url_for('auth.doc_login')}}" class="btn-ghost">Login</a>
+                <a href="{{url_for('auth.doc_signup')}}" class="btn-primary">Get Started</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- ── HERO ── -->
+<section class="hero">
+    <div class="container">
+        <div class="hero-badge">
+            <span class="dot"></span>
+            RIFT 2026 &nbsp;·&nbsp; HealthTech Track &nbsp;·&nbsp; Explainable AI
+        </div>
+
+        <h1 class="hero-title">
+            Precision Medicine<br>
+            <em>Powered by</em>
+            <span class="line2">Pharmacogenomics</span>
+        </h1>
+
+        <p class="hero-sub">
+            PharmaGuard analyzes your patient's <strong>genetic variants</strong> to predict drug metabolism risks — delivering clinically actionable recommendations before a single prescription is written.
+        </p>
+
+        <div class="hero-actions">
+            <a href="#" class="btn-hero-primary">Analyze VCF File →</a>
+            <a href="#how" class="btn-hero-ghost">See How It Works</a>
+        </div>
+
+        <div class="hero-stats">
+            <div class="h-stat">
+                <div class="h-stat-num">100k+</div>
+                <div class="h-stat-label">Preventable deaths/yr</div>
+            </div>
+            <div class="h-stat">
+                <div class="h-stat-num">6</div>
+                <div class="h-stat-label">Critical genes</div>
+            </div>
+            <div class="h-stat">
+                <div class="h-stat-num">6</div>
+                <div class="h-stat-label">Supported drugs</div>
+            </div>
+            <div class="h-stat">
+                <div class="h-stat-num">CPIC</div>
+                <div class="h-stat-label">Guideline aligned</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── PROBLEM ── -->
+<section id="problem">
+    <div class="container">
+        <div class="section-tag"><span class="num">01</span> The Problem</div>
+        <h2 class="section-title">Adverse drug reactions are<br><em>silently killing patients</em></h2>
+        <p class="section-desc">Most of these deaths are preventable. The missing piece is knowing how a patient's unique genome affects how they metabolize drugs — before they take them.</p>
+
+        <div class="problem-grid">
+            <div class="problem-card accent-card">
+                <div class="big-stat-text">100,000+</div>
+                <div class="problem-title">Americans die from ADRs every year</div>
+                <p class="problem-text">Adverse drug reactions are one of the leading causes of preventable death in the United States. The majority occur in patients with known pharmacogenomic risk factors that were never tested for — because the tools to do so at scale simply didn't exist at the point of care.</p>
+            </div>
+            <div class="problem-card">
+                <div class="problem-icon">🧬</div>
+                <div class="problem-title">Genetic Variants Change Everything</div>
+                <p class="problem-text">A single nucleotide polymorphism in CYP2D6 can turn a standard dose of Codeine into a lethal overdose for ultra-rapid metabolizers, or render it completely ineffective for poor metabolizers. Genetics aren't optional context — they are the answer.</p>
+            </div>
+            <div class="problem-card">
+                <div class="problem-icon">⚡</div>
+                <div class="problem-title">Clinicians Need Answers Now</div>
+                <p class="problem-text">Doctors don't have time to decode raw VCF files or cross-reference CPIC tables. PharmaGuard translates raw genomic data into clear, structured, plain-language clinical recommendations in seconds.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── HOW IT WORKS ── -->
+<section id="how">
+    <div class="container">
+        <div class="section-tag"><span class="num">02</span> How It Works</div>
+        <h2 class="section-title">From genome to<br><em>clinical decision</em></h2>
+        <p class="section-desc">A four-step pipeline that transforms raw VCF files into CPIC-aligned dosing recommendations with LLM-generated clinical rationale.</p>
+
+        <div class="steps-wrap">
+            <div class="step">
+                <span class="step-num">01</span>
+                <div class="step-content">
+                    <div class="step-title">Upload Patient VCF File</div>
+                    <div class="step-desc">Drag-and-drop or select a standard .vcf (v4.2) file up to 5MB. PharmaGuard validates format, extracts INFO tags (GENE, STAR, RS), and confirms file integrity before processing.</div>
+                    <span class="step-tag">VCF v4.2 · Up to 5MB</span>
+                </div>
+            </div>
+            <div class="step">
+                <span class="step-num">02</span>
+                <div class="step-content">
+                    <div class="step-title">Pharmacogenomic Variant Identification</div>
+                    <div class="step-desc">Our parser scans for clinically significant variants across 6 critical genes — CYP2D6, CYP2C19, CYP2C9, SLCO1B1, TPMT, and DPYD — and maps star allele diplotypes to phenotype classifications (PM, IM, NM, RM, URM).</div>
+                    <div class="chip-row mt-10">
+                        <span class="gene-chip">CYP2D6</span>
+                        <span class="gene-chip">CYP2C19</span>
+                        <span class="gene-chip">CYP2C9</span>
+                        <span class="gene-chip">SLCO1B1</span>
+                        <span class="gene-chip">TPMT</span>
+                        <span class="gene-chip">DPYD</span>
+                    </div>
+                </div>
+            </div>
+            <div class="step">
+                <span class="step-num">03</span>
+                <div class="step-content">
+                    <div class="step-title">Drug Risk Prediction</div>
+                    <div class="step-desc">Enter a drug name (or multiple, comma-separated). PharmaGuard cross-references the patient's diplotype against CPIC guidelines to output a structured risk label with confidence score and severity.</div>
+                    <div class="chip-row mt-10">
+                        <span class="risk-chip risk-safe"><span class="rc-dot"></span>Safe</span>
+                        <span class="risk-chip risk-adjust"><span class="rc-dot"></span>Adjust Dosage</span>
+                        <span class="risk-chip risk-toxic"><span class="rc-dot"></span>Toxic</span>
+                        <span class="risk-chip risk-ineffective"><span class="rc-dot"></span>Ineffective</span>
+                        <span class="risk-chip risk-unknown"><span class="rc-dot"></span>Unknown</span>
+                    </div>
+                </div>
+            </div>
+            <div class="step">
+                <span class="step-num">04</span>
+                <div class="step-content">
+                    <div class="step-title">LLM-Generated Clinical Explanation</div>
+                    <div class="step-desc">Claude synthesizes the variant data, phenotype, and risk label into a structured clinical summary — citing specific rsIDs, explaining biological mechanisms, and providing dosing rationale aligned with CPIC guidelines. Output is downloadable as structured JSON.</div>
+                    <span class="step-tag">CPIC Aligned · Structured JSON · Copy to Clipboard</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── FEATURES ── -->
+<section id="features">
+    <div class="container">
+        <div class="section-tag"><span class="num">03</span> Features</div>
+        <h2 class="section-title">Everything a clinician<br><em>needs to act</em></h2>
+        <p class="section-desc">Designed for precision, speed, and clarity — every feature exists to translate genomic complexity into confident clinical decisions.</p>
+
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                </div>
+                <div class="feature-title">VCF File Parsing</div>
+                <div class="feature-desc">Robust parser handles standard VCF v4.2 with INFO tag extraction. Validates format and provides user-friendly error messages for malformed files.</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                </div>
+                <div class="feature-title">Risk Classification</div>
+                <div class="feature-desc">Five-tier risk labeling system (Safe → Toxic) with confidence scoring and severity levels, aligned with CPIC evidence grades.</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                </div>
+                <div class="feature-title">LLM Explanations</div>
+                <div class="feature-desc">AI-generated clinical summaries cite specific variants, explain metabolic pathways, and provide actionable dosing language a doctor can act on.</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+                    </svg>
+                </div>
+                <div class="feature-title">Structured JSON Output</div>
+                <div class="feature-desc">Every result exports a schema-compliant JSON object — downloadable and clipboard-ready for integration into hospital EHR workflows.</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <div class="feature-title">Multi-Drug Support</div>
+                <div class="feature-desc">Analyze multiple drugs simultaneously with comma-separated input. Each drug generates an independent risk profile from the same genomic data.</div>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+                    </svg>
+                </div>
+                <div class="feature-title">CPIC Alignment</div>
+                <div class="feature-desc">Every recommendation cross-referenced against Clinical Pharmacogenomics Implementation Consortium guidelines — the gold standard for pharmacogenomic decision support.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── TECH STACK ── -->
+<section>
+    <div class="container">
+        <div class="section-tag"><span class="num">04</span> Technology</div>
+        <h2 class="section-title">Built on a <em>serious</em> stack</h2>
+        <p class="section-desc">Production-grade tools chosen for reliability, speed, and clinical-grade data handling.</p>
+
+        <div class="tech-grid">
+            <div class="tech-card">
+                <div class="tech-label">Backend</div>
+                <div class="tech-name">Flask</div>
+                <div class="tech-sub">Python · REST API</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-label">AI / LLM</div>
+                <div class="tech-name">Claude API</div>
+                <div class="tech-sub">Anthropic · Sonnet</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-label">Database</div>
+                <div class="tech-name">PostgreSQL</div>
+                <div class="tech-sub">SQLAlchemy ORM</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-label">Genomics</div>
+                <div class="tech-name">PyVCF</div>
+                <div class="tech-sub">VCF v4.2 Parsing</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-label">Auth</div>
+                <div class="tech-name">Flask-Login</div>
+                <div class="tech-sub">Werkzeug · Hashed</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-label">Frontend</div>
+                <div class="tech-name">Jinja2 + CSS</div>
+                <div class="tech-sub">Glassmorphism UI</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-label">Guidelines</div>
+                <div class="tech-name">CPIC</div>
+                <div class="tech-sub">v1.x · Evidence A/B</div>
+            </div>
+            <div class="tech-card">
+                <div class="tech-label">Deploy</div>
+                <div class="tech-name">Render</div>
+                <div class="tech-sub">Public · Live URL</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── TEAM ── -->
+<section id="team">
+    <div class="container">
+        <div class="section-tag"><span class="num">05</span> The Team</div>
+        <h2 class="section-title">Built by people who<br><em>care about the problem</em></h2>
+        <p class="section-desc">A multidisciplinary team bringing together genomics, clinical knowledge, and engineering.</p>
+
+        <div class="team-grid">
+            <div class="team-card">
+                <div class="team-avatar">A</div>
+                <div class="team-name">Satyam Maddeshiya</div>
+                <div class="team-role">Full-Stack Engineer</div>
+            </div>
+            <div class="team-card">
+                <div class="team-avatar">B</div>
+                <div class="team-name">Sanskar Gupta</div>
+                <div class="team-role">ML / LLM Engineer</div>
+            </div>
+            <div class="team-card">
+                <div class="team-avatar">C</div>
+                <div class="team-name">Raj Kamal Jha</div>
+                <div class="team-role">Genomics & Bioinformatics</div>
+            </div>
+            <div class="team-card">
+                <div class="team-avatar">D</div>
+                <div class="team-name">Aryan Saini</div>
+                <div class="team-role">Motivator</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-inner">
+            <h2 class="cta-title">Ready to make prescriptions<br><em>safer?</em></h2>
+            <p class="cta-sub">Upload a VCF file and get a full pharmacogenomic risk report in seconds — no genomics expertise required.</p>
+            <div class="cta-actions">
+                <a href="#" class="btn-cta">Analyze a Patient →</a>
+                <a href="#" class="btn-cta-outline">View Sample Report</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+    <div class="container">
+        <div class="footer-inner">
+            <span class="footer-brand">PharmaGuard</span>
+            <span class="footer-note">Built for RIFT 2026 · HealthTech Track · Pharmacogenomics / Explainable AI</span>
+            <span class="footer-tag">RIFT 2026</span>
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

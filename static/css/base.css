@@ -1,0 +1,35 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    background: var(--bg-primary);
+}
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-primary);
+}
+:root {
+    /* Backgrounds */
+    --bg-primary: #212529;
+    --bg-surface: #2A2D31;
+    --bg-elevated: #32363B;
+    --bg-border: #3D4147;
+
+    /* Brand */
+    --primary: #6366F1; /* indigo - primary */
+    --secondary: #3B82F6; /* blue - secondary */
+
+    /* Button gradient */
+    --btn-background: linear-gradient(135deg, var(--clr-accent2), var(--clr-accent));
+
+    /* Text */
+    --text-primary: #F1F5F9;
+    --text-secondary: #94A3B8;
+    --text-muted: #64748B;
+
+    /* Risk Colors - don't change these */
+    --risk-safe: #10B981;
+    --risk-adjust: #F59E0B;
+    --risk-toxic: #EF4444;
+    --risk-unknown: #6B7280;
+}

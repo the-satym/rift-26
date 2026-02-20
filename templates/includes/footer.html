@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="url_for('static', filename='css/base.css')">
+    <style>
+        .footer-wrapper{
+            background: linear-gradient(180deg, var(--tertiary), var(--secondary));
+            color: var(--white);
+            padding: 36px 0 36px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+
+            border: 1px solid rgba(255, 255, 255, 0.45);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+            background: rgb(105, 149, 236);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+
+        }
+        .footer-container{
+            display: flex;
+            justify-content: space-around;
+
+            width: 100%;
+        }
+        .footer-2, .footer-3{
+            display: flex;
+            flex-direction: column;
+
+        }
+        .footer-2 a, .footer-3 a{
+            text-decoration: none;
+            color: white;
+        }
+        .footer-2 a:hover, .footer-3 a:hover{
+            text-decoration: underline;
+            color: var(--secondary);
+        }
+
+
+    </style>
+</head>
+<body>
+<div class="footer-wrapper">
+    <div class="footer-container">
+        <div class="footer-1">
+            <img src="{{url_for('static', filename='images/header_logo.png')}}" alt="website logo" width="auto" height="auto">
+            <pre style="font-family: Inter,sans-serif; font-size: 16px">HireSphere is a smart placement portal connecting students and
+organizations through verified opportunities, skill-based matching,
+and streamlined applications—helping candidates take their first
+confident step into a successful professional future.</pre>
+        </div>
+        <div class="footer-2">
+            <h3 style="font-family: cutive, sans-serif">Quick Links</h3>
+            <ul>
+                <li><a href="">About us</a></li>
+                <li><a href="">Contact us</a></li>
+                <li><a href="">Privacy Policies</a></li>
+                <li><a href="">Terms & Conditions</a></li>
+            </ul>
+        </div>
+        <div class="footer-3">
+            <h3 style="font-family: cutive, sans-serif">Resources</h3>
+            <ul>
+                <li><a href="">Blogs</a></li>
+                <li><a href="">Success Stories</a></li>
+                <li><a href="">FAQs</a></li>
+                <li><a href="">Careers</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="footer-4" style="font-size: medium">
+        &copy; 2026 HireSphere. All rights reserved.
+    </div>
+</div>
+</body>
+</html>
