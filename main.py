@@ -3,6 +3,7 @@ from routes import registering_routes
 from models import *
 import config
 from routes.admin import create_default_admin
+import os
 
 app=Flask(__name__)
 app.config['SECRET_KEY']= config.secret_key
@@ -29,4 +30,5 @@ def add_nocache_headers(response):
 if __name__ == '__main__':
     port= int(os.environ.get('PORT',5000))
     app.run(debug=False, port=port, host="0.0.0.0")
+
 
