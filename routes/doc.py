@@ -1,5 +1,5 @@
 from flask import Flask, flash, Blueprint, redirect, url_for, render_template, session, request, jsonify
-from numpy.distutils.lib2def import output_def
+
 
 from models import Doc,db
 from logic.main_pipeline import run_pharmacogenomics_pipeline
@@ -41,4 +41,5 @@ def dashboard():
                 os.remove(tmp_path)
 
     return render_template('dashboard/doc_dash.html', doc=doc)
+
 
