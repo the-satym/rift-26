@@ -1,6 +1,7 @@
 import os
 import json
 import requests
+from google import genai
 
 # HuggingFace Inference API - free tier
 api_key = os.getenv('GEMINI_API_KEY')
@@ -121,3 +122,4 @@ if __name__ == "__main__":
     )
 
     print(json.dumps(result, indent=2))
+
