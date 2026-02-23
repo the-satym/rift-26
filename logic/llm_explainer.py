@@ -62,23 +62,18 @@ Generate a clinical explanation in STRICT JSON format with exactly these three f
 
 Return ONLY valid JSON. No markdown, no code blocks, no extra text."""
 
-    headers = {
-        "Authorization": f"Bearer {HF_TOKEN}",
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "model": MODEL,
-        "messages": [{"role": "user", "content": prompt}],
-        "max_tokens": 400,
-        "temperature": 0.3
-    }
 
     try:
-        response = requests.post(API_URL, headers=headers, json=payload, timeout=30)
-        response.raise_for_status()
+        response = client.models.generate_content(
+            model=MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.3,
+                max_output_tokens=400,
+            )
+        )
 
-        raw = response.json()["choices"][0]["message"]["content"].strip()
+        raw = response.text.strip()
 
         # Strip markdown code blocks if model wraps in them
         if raw.startswith("```"):
@@ -122,4 +117,5 @@ if __name__ == "__main__":
     )
 
     print(json.dumps(result, indent=2))
+
 
