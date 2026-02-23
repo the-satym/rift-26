@@ -3,10 +3,11 @@ import json
 import requests
 
 # HuggingFace Inference API - free tier
-HF_TOKEN = "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"
+api_key = os.getenv('GEMINI_API_KEY')
+client = genai.Client(api_key=api_key)
 
-API_URL = "https://router.huggingface.co/v1/chat/completions"
-MODEL = "meta-llama/Llama-3.1-8B-Instruct"
+
+MODEL = "gemma-3-27b-it"
 
 # Phenotype abbreviation map
 PHENOTYPE_ABBREV = {
@@ -118,4 +119,5 @@ if __name__ == "__main__":
         risk_label="Toxic/Ineffective",
         action="Avoid. High risk of cardiovascular events."
     )
+
     print(json.dumps(result, indent=2))
