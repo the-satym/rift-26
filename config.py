@@ -5,4 +5,6 @@ load_dotenv()
 
 secret_key = os.getenv("SECRET_KEY")
 SQLALCHEMY_DATABASE_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
+
 SQLALCHEMY_TRACK_MODIFICATIONS = os.getenv("SQLALCHEMY_TRACK_MODIFICATIONS")
+GEMINI_API_KEY = os.getenv("gemini_api_key")
