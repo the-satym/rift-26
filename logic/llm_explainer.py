@@ -1,13 +1,14 @@
 import os
 import json
-import requests
+from dotenv import load_dotenv
 from google import genai
+from google.genai import types
 
-# HuggingFace Inference API - free tier
+load_dotenv()
+
+# Gemini API setup
 api_key = os.getenv('GEMINI_API_KEY')
 client = genai.Client(api_key=api_key)
-
-
 MODEL = "gemma-3-27b-it"
 
 # Phenotype abbreviation map
@@ -39,7 +40,7 @@ def _calculate_confidence(star_allele, phenotype):
 
 def generate_llm_explanation(drug, gene, star_allele, phenotype, rsid, risk_label, action):
     """
-    Calls HuggingFace Inference API (Mistral-7B) to generate a structured clinical explanation.
+    Calls Gemini API (gemma-3-27b-it) to generate a structured clinical explanation.
     Returns a dict with summary, mechanism, and patient_note.
     """
     prompt = f"""You are a clinical pharmacogenomics assistant. A patient has been analyzed for drug-gene interactions.
@@ -61,7 +62,6 @@ Generate a clinical explanation in STRICT JSON format with exactly these three f
 }}
 
 Return ONLY valid JSON. No markdown, no code blocks, no extra text."""
-
 
     try:
         response = client.models.generate_content(
@@ -105,7 +105,6 @@ Return ONLY valid JSON. No markdown, no code blocks, no extra text."""
 
 
 if __name__ == "__main__":
-    # Quick test
     result = generate_llm_explanation(
         drug="CLOPIDOGREL",
         gene="CYP2C19",
@@ -115,7 +114,4 @@ if __name__ == "__main__":
         risk_label="Toxic/Ineffective",
         action="Avoid. High risk of cardiovascular events."
     )
-
     print(json.dumps(result, indent=2))
-
-
